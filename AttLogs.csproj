@@ -88,6 +88,7 @@
     <Compile Include="AttLogsMain.Designer.cs">
       <DependentUpon>AttLogsMain.cs</DependentUpon>
     </Compile>
+    <Compile Include="DBUtilies.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="AttLogsMain.resx">
@@ -104,6 +105,7 @@
       <DependentUpon>Resources.resx</DependentUpon>
       <DesignTime>True</DesignTime>
     </Compile>
+    <None Include="app.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>

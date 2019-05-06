@@ -9,10 +9,13 @@ using System.Drawing;
 using System.Text;
 using System.Windows.Forms;
 using System.Data.OleDb;
+using System.Configuration;
 namespace AttLogs
 {
     public partial class AttLogsMain : Form
     {
+        String ARTARDBconnection = ConfigurationManager.ConnectionStrings["Artar_webConnectionString"].ConnectionString;
+        DBUtilies dbutilies = new DBUtilies();
         public AttLogsMain()
         {
             InitializeComponent();
@@ -34,7 +37,7 @@ namespace AttLogs
         //when you are using the tcp/ip communication,you can distinguish different devices by their IP address.
         private void btnConnect_Click(object sender, EventArgs e)
         {
-         
+
             if (txtIP.Text.Trim() == "" || txtPort.Text.Trim() == "")
             {
                 MessageBox.Show("IP and Port cannot be null", "Error");
@@ -54,7 +57,7 @@ namespace AttLogs
             }
 
             bIsConnected = axCZKEM1.Connect_Net(txtIP.Text, Convert.ToInt32(txtPort.Text));
-         
+
             if (bIsConnected == true)
             {
                 btnConnect.Text = "DisConnect";
@@ -242,19 +245,20 @@ namespace AttLogs
 
 
         /*************************************************************************************************
-        * This is overriden code for attendance logs, every setup is connected to msaccess database    *
+        * This overrides code for attendance logs, every setup is connected to database    *
         * ************************************************************************************************/
         #region NewCodes
         string deviceip, port;
 
-        String connection = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=C:\\Attendance\\ARTAR_db_2000.mdb;Persist Security Info=false";
+        // String connection = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=C:\\Attendance\\ARTAR_db_2000.mdb;Persist Security Info=false";
+
         public DataTable Getdata(string query)
         {
             OleDbCommand sqlcmd;
             DataTable dt3 = new DataTable();
             try
             {
-                OleDbConnection conn = new OleDbConnection(connection);
+                OleDbConnection conn = new OleDbConnection(ARTARDBconnection);
                 if (conn.State == ConnectionState.Closed)
                 {
                     conn.Open();
@@ -282,24 +286,33 @@ namespace AttLogs
 
         public void AutoConnect(object sender, EventArgs e)
         {
-            int idwErrorCode = 0;
-            Cursor = Cursors.WaitCursor;
-
-            string errologpath, emailto, deviceip, timer;
-            DataTable dt = new DataTable();
-
-            dt = Getdata("select deviceip from applicationsettings");
-            for (int x = 0; x <= dt.Rows.Count - 1; x++)//if more than one device
+            try
             {
-                txtIP.Text = dt.Rows[x][0].ToString().Trim();
-                txtPort.Text = "4370";
-               
-                //invoke connect button
-                btnConnect_Click(sender,e);              
-                //Retrive attendance logs
-                GetAttendanceLog(txtIP.Text.ToString());
+                int idwErrorCode = 0;
+                Cursor = Cursors.WaitCursor;
+
+                string errologpath, emailto, deviceip, timer;
+                DataTable dt = new DataTable();
+
+                dt = dbutilies.GetData("SELECT IP_ADDR,PORT FROM XATT_IP","GetData>AutoConnect");
+                for (int x = 0; x <= dt.Rows.Count - 1; x++)//if more than one device
+                {
+                    txtIP.Text = dt.Rows[x][0].ToString().Trim();//ip address
+                    txtPort.Text = dt.Rows[x][1].ToString().Trim();//device port
+
+                    //Call the button event listener to do the button click event.
+                    btnConnect_Click(sender, e);
+
+
+                    //fetch data to database
+                    GetAttendanceLog(txtIP.Text.ToString());
+                }
+                //deviceip = dt.Rows[]
             }
-            //deviceip = dt.Rows[]
+            catch (Exception ex)
+            {
+                MessageBox.Show("Source AutoConnect() method\n "+ex.Message.ToString());
+            }
         }
 
         #region Getattendancelog
@@ -327,21 +340,29 @@ namespace AttLogs
             int recordslogs = 0;
             Cursor = Cursors.WaitCursor;
             lvLogs.Items.Clear();
-            axCZKEM1.EnableDevice(iMachineNumber, false);//disable the device
+            axCZKEM1.EnableDevice(iMachineNumber, true);//disable the device
             if (axCZKEM1.ReadGeneralLogData(iMachineNumber))//read all the attendance records to the memory
             {
                 while (axCZKEM1.SSR_GetGeneralLogData(iMachineNumber, out sdwEnrollNumber, out idwVerifyMode,
                             out idwInOutMode, out idwYear, out idwMonth, out idwDay, out idwHour, out idwMinute, out idwSecond, ref idwWorkcode))//get records from the memory
                 {
-                  
-                    // get datetime logs
+
+                    // get and format date logs
                     string datelog = idwYear.ToString() + "-" + idwMonth.ToString() + "-" + idwDay.ToString() + " " + idwHour.ToString() + ":" + idwMinute.ToString() + ":" + idwSecond.ToString();
 
                     //insert to database
-                    InserttoDB(sdwEnrollNumber, Convert.ToDateTime(datelog), idwInOutMode, xdeviceip);
+                    // InserttoDB(sdwEnrollNumber, Convert.ToDateTime(datelog), idwInOutMode, xdeviceip);
+                    //*8010
+                    dbutilies.UserId = sdwEnrollNumber;
+                    dbutilies.Datelog = Convert.ToDateTime(datelog);
+                    dbutilies.VerifyMode = idwVerifyMode;
+                    dbutilies.DeviceIP = xdeviceip;
+                    dbutilies.InOutMode = idwInOutMode.ToString();
+                    int recordcount = dbutilies.FetchData();//record counted
+                    MessageBox.Show(recordcount.ToString());
                     recordslogs++;
                 }
-               
+
             }
             else
             {
@@ -366,39 +387,39 @@ namespace AttLogs
         }
         #endregion
         #region InserttoDB
-        public void InserttoDB(string userid, DateTime datelog, int verifymode, string deviceip)
-        {
-            try
-            {
-                OleDbConnection conn = new OleDbConnection(connection);
-                if (conn.State == ConnectionState.Closed)
-                {
-                    conn.Open();
-                }
-                string sql = "insert into AttendanceLOG (USERID, DATELOG, METHOD,deviceip) VALUES ('" + userid + "', '" + datelog.ToString() + "', " + verifymode.ToString() + ",'" + deviceip + "')";
-                OleDbCommand adapter = new OleDbCommand(sql, conn);
-                //string xsql = "select top 1 * from attendancelog where userid = '" + userid + "' and datelog = #" + datelog.ToString() + "#";
-                string xsql = "SELECT top 1 * FROM attendancelog WHERE (((attendancelog.[userid])='" + userid + "') AND ((Format([datelog],'general Date'))=Format('" + datelog.ToString() + "','general Date')));";
+        //public void InserttoDB(string userid, DateTime datelog, int verifymode, string deviceip)
+        //{
+        //    try
+        //    {
+        //        OleDbConnection conn = new OleDbConnection(this.ARTARDBconnection);
+        //        if (conn.State == ConnectionState.Closed)
+        //        {
+        //            conn.Open();
+        //        }
+        //        string sql = "insert into AttendanceLOG (USERID, DATELOG, METHOD,deviceip) VALUES ('" + userid + "', '" + datelog.ToString() + "', " + verifymode.ToString() + ",'" + deviceip + "')";
+        //        OleDbCommand adapter = new OleDbCommand(sql, conn);
+        //        //string xsql = "select top 1 * from attendancelog where userid = '" + userid + "' and datelog = #" + datelog.ToString() + "#";
+        //        string xsql = "SELECT top 1 * FROM attendancelog WHERE (((attendancelog.[userid])='" + userid + "') AND ((Format([datelog],'general Date'))=Format('" + datelog.ToString() + "','general Date')));";
 
-                OleDbCommand olecmd1 = new OleDbCommand(xsql, conn);
-                OleDbDataReader duplicates = olecmd1.ExecuteReader();
-                if (duplicates.HasRows == false)//if userid and datelog exist
-                {
-                    adapter.ExecuteNonQuery();//execute insert command
-                }
+        //        OleDbCommand olecmd1 = new OleDbCommand(xsql, conn);
+        //        OleDbDataReader duplicates = olecmd1.ExecuteReader();
+        //        if (duplicates.HasRows == false)//if userid and datelog exist
+        //        {
+        //            adapter.ExecuteNonQuery();//execute insert command
+        //        }
 
-                //To close the connection.
-                conn.Dispose();
-                //conn.Close();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Error occur on procedure #InserttoDb(): Problem Details: " + ex.Message);
-                // SendEmail("Error on procedure #InserttoDB: " + ex.Message);
-                axCZKEM1.EnableDevice(iMachineNumber, true);//Enable the device and put it into Normal mode.
-                Cursor = Cursors.Default;
-            }
-        }
+        //        //To close the connection.
+        //        conn.Dispose();
+        //        //conn.Close();
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        MessageBox.Show("Error occur on procedure #InserttoDb(): Problem Details: " + ex.Message);
+        //        // SendEmail("Error on procedure #InserttoDB: " + ex.Message);
+        //        axCZKEM1.EnableDevice(iMachineNumber, true);//Enable the device and put it into Normal mode.
+        //        Cursor = Cursors.Default;
+        //    }
+        //}
         #endregion
 
         private void AttLogsMain_Load(object sender, EventArgs e)
@@ -409,12 +430,12 @@ namespace AttLogs
             ShowInTaskbar = false;
 
             // get application settings as needed
-            string errologpath, emailto, deviceip, timer;
-            ApplicationSettings.ErrorSettings(out errologpath, out emailto, out deviceip, out timer);
+            //string errologpath, emailto, deviceip, timer;
+            //  ApplicationSettings.ErrorSettings(out errologpath, out emailto, out deviceip, out timer);
 
 
             this.Hide();//hide the form
-            AutoConnect(sender,e);//Check device connectivity and Capture data
+            AutoConnect(sender, e);//Check device connectivity and Capture data
 
             this.Close();//EXIT FORM
         }

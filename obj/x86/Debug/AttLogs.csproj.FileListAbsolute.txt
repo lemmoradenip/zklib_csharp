@@ -29,3 +29,4 @@ E:\_Desktop_Apps\GetAttenLogs_11.10.2018\AttLogs\obj\x86\Debug\AttLogs.csproj.Ge
 E:\_Desktop_Apps\GetAttenLogs_11.10.2018\AttLogs\obj\x86\Debug\AttLogs.TrustInfo.xml
 E:\_Desktop_Apps\GetAttenLogs_11.10.2018\AttLogs\obj\x86\Debug\AttLogs.exe.manifest
 E:\_Desktop_Apps\GetAttenLogs_11.10.2018\AttLogs\obj\x86\Debug\AttLogs.application
+E:\_Desktop_Apps\GetAttenLogs_11.10.2018\AttLogs\bin\x86\Debug\AttLogs.exe.config

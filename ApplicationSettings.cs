@@ -44,7 +44,7 @@ namespace AttLogs
             {
                 //get the connection string from app.config
                 OleDbConnection conn = new OleDbConnection(ApplicationSettings.ConnectionString);
-                OleDbCommand olecmd = new OleDbCommand("select top 1 logpath,email,deviceip,timer from ApplicationSettings ", conn);
+                OleDbCommand olecmd = new OleDbCommand("select ip_addr", conn);
                 if (conn.State == ConnectionState.Closed)
                 {
                     conn.Open();
@@ -106,6 +106,12 @@ namespace AttLogs
             return status;
         }
         #endregion
+
+        /*************************************************************************************************
+        * Setup for new codes *
+        * ************************************************************************************************/
+
+       
 
     }
 }
