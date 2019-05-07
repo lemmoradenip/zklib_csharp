@@ -133,7 +133,8 @@ namespace AttLogs
             }
             catch (Exception ex)
             {
-                throw new Exception(String.Format((ex.Message.ToString().Contains("duplicate") ? "Record already Exist!" : ex.Message.ToString())));
+                //throw new Exception(String.Format((ex.Message.ToString().Contains("duplicate") ? "Record already Exist!" : ex.Message.ToString())));
+                throw new Exception(ex.Message.ToString());
             }
             finally
             {

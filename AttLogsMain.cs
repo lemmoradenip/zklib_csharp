@@ -340,7 +340,7 @@ namespace AttLogs
             int recordslogs = 0;
             Cursor = Cursors.WaitCursor;
             lvLogs.Items.Clear();
-            axCZKEM1.EnableDevice(iMachineNumber, true);//disable the device
+            axCZKEM1.EnableDevice(iMachineNumber, true);//disable the device with
             if (axCZKEM1.ReadGeneralLogData(iMachineNumber))//read all the attendance records to the memory
             {
                 while (axCZKEM1.SSR_GetGeneralLogData(iMachineNumber, out sdwEnrollNumber, out idwVerifyMode,
@@ -359,7 +359,7 @@ namespace AttLogs
                     dbutilies.DeviceIP = xdeviceip;
                     dbutilies.InOutMode = idwInOutMode.ToString();
                     int recordcount = dbutilies.FetchData();//record counted
-                    MessageBox.Show(recordcount.ToString());
+                    //MessageBox.Show("Userid" + sdwEnrollNumber + "\n Datelog:" + Convert.ToDateTime(datelog).ToString());
                     recordslogs++;
                 }
 
