@@ -294,15 +294,15 @@ namespace AttLogs
                 string errologpath, emailto, deviceip, timer;
                 DataTable dt = new DataTable();
 
-                dt = dbutilies.GetData("SELECT IP_ADDR,PORT FROM XATT_IP","GetData>AutoConnect");
+                dt = dbutilies.GetData("SELECT IP_ADDR,PORT FROM XATT_IP where enabled=1 order by id ","GetData>AutoConnect");
                 for (int x = 0; x <= dt.Rows.Count - 1; x++)//if more than one device
                 {
                     txtIP.Text = dt.Rows[x][0].ToString().Trim();//ip address
                     txtPort.Text = dt.Rows[x][1].ToString().Trim();//device port
 
-                    //Call the button event listener to do the button click event.
-                    btnConnect_Click(sender, e);
-
+                    //connect device            
+                    bool Devicestatus = this.ConnectDevice(dt.Rows[x][0].ToString().Trim(), dt.Rows[x][1].ToString().Trim());
+                  //  MessageBox.Show("IP" + dt.Rows[x][0].ToString().Trim() + "\n Status:" + Devicestatus.ToString());
 
                     //fetch data to database
                     GetAttendanceLog(txtIP.Text.ToString());
@@ -320,7 +320,7 @@ namespace AttLogs
         {
             if (bIsConnected == false)
             {
-                MessageBox.Show("Please connect the device first", "Error");
+                MessageBox.Show(String.Format("Please connect the device ({0}) first",xdeviceip.ToString()), "Error");
                 return;
             }
             int idwErrorCode = 0;
@@ -386,41 +386,57 @@ namespace AttLogs
             // this.Close();
         }
         #endregion
-        #region InserttoDB
-        //public void InserttoDB(string userid, DateTime datelog, int verifymode, string deviceip)
-        //{
-        //    try
-        //    {
-        //        OleDbConnection conn = new OleDbConnection(this.ARTARDBconnection);
-        //        if (conn.State == ConnectionState.Closed)
-        //        {
-        //            conn.Open();
-        //        }
-        //        string sql = "insert into AttendanceLOG (USERID, DATELOG, METHOD,deviceip) VALUES ('" + userid + "', '" + datelog.ToString() + "', " + verifymode.ToString() + ",'" + deviceip + "')";
-        //        OleDbCommand adapter = new OleDbCommand(sql, conn);
-        //        //string xsql = "select top 1 * from attendancelog where userid = '" + userid + "' and datelog = #" + datelog.ToString() + "#";
-        //        string xsql = "SELECT top 1 * FROM attendancelog WHERE (((attendancelog.[userid])='" + userid + "') AND ((Format([datelog],'general Date'))=Format('" + datelog.ToString() + "','general Date')));";
 
-        //        OleDbCommand olecmd1 = new OleDbCommand(xsql, conn);
-        //        OleDbDataReader duplicates = olecmd1.ExecuteReader();
-        //        if (duplicates.HasRows == false)//if userid and datelog exist
-        //        {
-        //            adapter.ExecuteNonQuery();//execute insert command
-        //        }
+        #region connectTCPIP
+        /// <summary>
+        /// Connect Device using TCP/IP 
+        /// </summary>
+        /// <param name="IP"></param>
+        /// <param name="Port"></param>
+        /// <returns>bool</returns>
+        private bool ConnectDevice(string IP, string Port)
+        {
 
-        //        //To close the connection.
-        //        conn.Dispose();
-        //        //conn.Close();
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        MessageBox.Show("Error occur on procedure #InserttoDb(): Problem Details: " + ex.Message);
-        //        // SendEmail("Error on procedure #InserttoDB: " + ex.Message);
-        //        axCZKEM1.EnableDevice(iMachineNumber, true);//Enable the device and put it into Normal mode.
-        //        Cursor = Cursors.Default;
-        //    }
-        //}
+            if (IP == "" || Port == "")
+            {
+                MessageBox.Show("IP and Port cannot be null", "Error");
+                return false;
+            }
+            int idwErrorCode = 0;
+
+            Cursor = Cursors.WaitCursor;
+            if (btnConnect.Text == "DisConnect")
+            {
+                axCZKEM1.Disconnect();
+                bIsConnected = false;
+                btnConnect.Text = "Connect";
+                lblState.Text = "Current State:DisConnected";
+                Cursor = Cursors.Default;
+                return false;
+            }
+
+            bIsConnected = axCZKEM1.Connect_Net(txtIP.Text, Convert.ToInt32(txtPort.Text));
+
+            if (bIsConnected == true)
+            {
+               // btnConnect.Text = "DisConnect";
+                btnConnect.Refresh();
+                lblState.Text = "Current State:Connected";
+                iMachineNumber = 1;//In fact,when you are using the tcp/ip communication,this parameter will be ignored,that is any integer will all right.Here we use 1.
+                axCZKEM1.RegEvent(iMachineNumber, 65535);//Here you can register the realtime events that you want to be triggered(the parameters 65535 means registering all)
+            }
+            else
+            {
+                axCZKEM1.GetLastError(ref idwErrorCode);
+                MessageBox.Show("Unable to connect the device,ErrorCode=" + idwErrorCode.ToString(), "Error");
+            }
+
+            Cursor = Cursors.Default;
+            return bIsConnected;// return result from tcp ip connection
+         
+        }
         #endregion
+
 
         private void AttLogsMain_Load(object sender, EventArgs e)
         {
