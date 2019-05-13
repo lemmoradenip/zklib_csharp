@@ -251,7 +251,7 @@ namespace AttLogs
         string deviceip, port;
 
         // String connection = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=C:\\Attendance\\ARTAR_db_2000.mdb;Persist Security Info=false";
-
+        #region Getdate     
         public DataTable Getdata(string query)
         {
             OleDbCommand sqlcmd;
@@ -281,9 +281,9 @@ namespace AttLogs
             }
             return dt3;
         }
+        #endregion
 
-
-
+        
         public void AutoConnect(object sender, EventArgs e)
         {
             try
@@ -436,7 +436,70 @@ namespace AttLogs
          
         }
         #endregion
+        /// <summary>
+        /// Download biometric data from device to database
+        /// </summary>
+        #region DownloadBioTemplate
+        private void DownloadBioTemplate()
+        {
+            if (bIsConnected == false)
+            {
+                MessageBox.Show("Please connect the device first!", "Error");
+                return;
+            }
 
+            string sName = "";
+            string sPassword = "";
+            int iPrivilege = 0;
+            bool bEnabled = false;
+
+            int idwFingerIndex = 0;
+            string sTmpData = "";
+            int iTmpLength = 0;
+            int iFlag = 0;
+
+            //lvDownload.Items.Clear();
+            //lvDownload.BeginUpdate();
+            axCZKEM1.EnableDevice(iMachineNumber, false);
+            Cursor = Cursors.WaitCursor;
+
+            axCZKEM1.ReadAllUserID(iMachineNumber);//read all the user information to the memory
+            axCZKEM1.ReadAllTemplate(iMachineNumber);//read all the users' fingerprint templates to the memory
+
+            int sdwEnrollNumber = 0;
+            while (axCZKEM1.GetAllUserInfo(iMachineNumber, ref sdwEnrollNumber, ref sName, ref sPassword, ref iPrivilege, ref bEnabled))//get all the users' information from the memory
+            {
+                for (idwFingerIndex = 0; idwFingerIndex < 10; idwFingerIndex++)
+                {
+                    if (axCZKEM1.GetUserTmpExStr(iMachineNumber, sdwEnrollNumber.ToString(), idwFingerIndex, out iFlag, out sTmpData, out iTmpLength))//get the corresponding templates string and length from the memory
+                    {
+                        ListViewItem list = new ListViewItem();
+                        list.Text = sdwEnrollNumber.ToString();
+                        list.SubItems.Add(sName);
+                        list.SubItems.Add(idwFingerIndex.ToString());
+                        list.SubItems.Add(sTmpData);
+                        list.SubItems.Add(iPrivilege.ToString());
+                        list.SubItems.Add(sPassword);
+                        if (bEnabled == true)
+                        {
+                            list.SubItems.Add("true");
+                        }
+                        else
+                        {
+                            list.SubItems.Add("false");
+                        }
+                        list.SubItems.Add(iFlag.ToString());
+                        //lvDownload.Items.Add(list);
+
+                    }
+                }
+            }
+
+            //lvDownload.EndUpdate();
+            axCZKEM1.EnableDevice(iMachineNumber, true);
+            Cursor = Cursors.Default;
+        }
+        #endregion
 
         private void AttLogsMain_Load(object sender, EventArgs e)
         {

@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
 VisualStudioVersion = 12.0.21005.1
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AttLogs", "AttLogs.csproj", "{8B8B46E4-868F-4466-82CF-03915BA4E3A3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XBIOSYNC", "XBIOSYNC.csproj", "{8B8B46E4-868F-4466-82CF-03915BA4E3A3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
