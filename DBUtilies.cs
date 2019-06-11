@@ -25,9 +25,9 @@ namespace AttLogs
 {
     public class DBUtilies
     {
-        private string DBConnectionString;
+        //private string DBConnectionString;
         private SqlConnection sqlcon;
-        private DataTable dt;
+        //private DataTable dt;
         private SqlCommand sqlcmd;
         private string userid;
         private DateTime datelog;
@@ -160,7 +160,7 @@ namespace AttLogs
             sqlcmd.Parameters.AddWithValue("@datetimelog", this.datelog);
             sqlcmd.Parameters.AddWithValue("@verifymode", this.verifymode);
             sqlcmd.Parameters.AddWithValue("@deviceip", this.deviceip);
-            sqlcmd.Parameters.AddWithValue("@inoutmode", this.inoutmode);           
+            sqlcmd.Parameters.AddWithValue("@inoutmode", this.inoutmode);
             return this.ExecuteNonQuery(sqlcmd);
         }
 

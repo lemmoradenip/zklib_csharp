@@ -15,6 +15,7 @@ namespace AttLogs
     public partial class AttLogsMain : Form
     {
         String ARTARDBconnection = ConfigurationManager.ConnectionStrings["Artar_webConnectionString"].ConnectionString;
+
         DBUtilies dbutilies = new DBUtilies();
         public AttLogsMain()
         {
@@ -245,56 +246,19 @@ namespace AttLogs
 
 
         /*************************************************************************************************
-        * This overrides code for attendance logs, every setup is connected to database    *
+        * Modified code for different business logic, every setup is connected to database,and via schedule pulling    *
         * ************************************************************************************************/
-        #region NewCodes
-        string deviceip, port;
 
-        // String connection = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=C:\\Attendance\\ARTAR_db_2000.mdb;Persist Security Info=false";
-        #region Getdate     
-        public DataTable Getdata(string query)
-        {
-            OleDbCommand sqlcmd;
-            DataTable dt3 = new DataTable();
-            try
-            {
-                OleDbConnection conn = new OleDbConnection(ARTARDBconnection);
-                if (conn.State == ConnectionState.Closed)
-                {
-                    conn.Open();
-                }
-                sqlcmd = new OleDbCommand(query, conn);
-                if (conn.State == ConnectionState.Closed)
-                {
-                    conn.Open();
-                }
-                using (OleDbDataAdapter sda = new OleDbDataAdapter())
-                {
-                    sqlcmd.CommandType = CommandType.Text;
-                    sda.SelectCommand = sqlcmd;
-                    sda.Fill(dt3);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Error on Function Getdata  details:" + ex.Message.ToString());
-            }
-            return dt3;
-        }
-        #endregion
-
-        
         public void AutoConnect(object sender, EventArgs e)
         {
             try
             {
-                int idwErrorCode = 0;
                 Cursor = Cursors.WaitCursor;
-
-                string errologpath, emailto, deviceip, timer;
+                //string errologpath, emailto, deviceip, timer;
                 DataTable dt = new DataTable();
 
-                dt = dbutilies.GetData("SELECT IP_ADDR,PORT FROM XATT_IP where enabled=1 order by id ","GetData>AutoConnect");
+                // get a list of device from table. 
+                dt = dbutilies.GetData("SELECT IP_ADDR,PORT FROM XATT_IP where enabled=1 order by id ", "GetData>AutoConnect");
                 for (int x = 0; x <= dt.Rows.Count - 1; x++)//if more than one device
                 {
                     txtIP.Text = dt.Rows[x][0].ToString().Trim();//ip address
@@ -302,16 +266,15 @@ namespace AttLogs
 
                     //connect device            
                     bool Devicestatus = this.ConnectDevice(dt.Rows[x][0].ToString().Trim(), dt.Rows[x][1].ToString().Trim());
-                  //  MessageBox.Show("IP" + dt.Rows[x][0].ToString().Trim() + "\n Status:" + Devicestatus.ToString());
 
-                    //fetch data to database
-                    GetAttendanceLog(txtIP.Text.ToString());
+                    // fetch data to database
+                    this.GetAttendanceLog(txtIP.Text.ToString());
                 }
                 //deviceip = dt.Rows[]
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Source AutoConnect() method\n "+ex.Message.ToString());
+                MessageBox.Show("Source AutoConnect() method\n " + ex.Message.ToString());
             }
         }
 
@@ -320,7 +283,7 @@ namespace AttLogs
         {
             if (bIsConnected == false)
             {
-                MessageBox.Show(String.Format("Please connect the device ({0}) first",xdeviceip.ToString()), "Error");
+                MessageBox.Show(String.Format("Please connect the device ({0}) first", xdeviceip.ToString()), "Error");
                 return;
             }
             int idwErrorCode = 0;
@@ -335,8 +298,8 @@ namespace AttLogs
             int idwSecond = 0;
             int idwWorkcode = 0;
 
-            int iGLCount = 0;
-            int iIndex = 0;
+            //int iGLCount = 0;
+            //int iIndex = 0;
             int recordslogs = 0;
             Cursor = Cursors.WaitCursor;
             lvLogs.Items.Clear();
@@ -351,15 +314,13 @@ namespace AttLogs
                     string datelog = idwYear.ToString() + "-" + idwMonth.ToString() + "-" + idwDay.ToString() + " " + idwHour.ToString() + ":" + idwMinute.ToString() + ":" + idwSecond.ToString();
 
                     //insert to database
-                    // InserttoDB(sdwEnrollNumber, Convert.ToDateTime(datelog), idwInOutMode, xdeviceip);
-                    //*8010
+                    // inserttodb(sdwEnrollNumber, Convert.ToDateTime(datelog), idwInOutMode, xdeviceip);                   
                     dbutilies.UserId = sdwEnrollNumber;
                     dbutilies.Datelog = Convert.ToDateTime(datelog);
                     dbutilies.VerifyMode = idwVerifyMode;
                     dbutilies.DeviceIP = xdeviceip;
                     dbutilies.InOutMode = idwInOutMode.ToString();
-                    int recordcount = dbutilies.FetchData();//record counted
-                    //MessageBox.Show("Userid" + sdwEnrollNumber + "\n Datelog:" + Convert.ToDateTime(datelog).ToString());
+                    int recordcount = dbutilies.FetchData();//record counted                  
                     recordslogs++;
                 }
 
@@ -419,7 +380,7 @@ namespace AttLogs
 
             if (bIsConnected == true)
             {
-               // btnConnect.Text = "DisConnect";
+                // btnConnect.Text = "DisConnect";
                 btnConnect.Refresh();
                 lblState.Text = "Current State:Connected";
                 iMachineNumber = 1;//In fact,when you are using the tcp/ip communication,this parameter will be ignored,that is any integer will all right.Here we use 1.
@@ -433,91 +394,129 @@ namespace AttLogs
 
             Cursor = Cursors.Default;
             return bIsConnected;// return result from tcp ip connection
-         
         }
         #endregion
         /// <summary>
-        /// Download biometric data from device to database
+        /// Beginning of Execution
         /// </summary>
-        #region DownloadBioTemplate
-        private void DownloadBioTemplate()
-        {
-            if (bIsConnected == false)
-            {
-                MessageBox.Show("Please connect the device first!", "Error");
-                return;
-            }
-
-            string sName = "";
-            string sPassword = "";
-            int iPrivilege = 0;
-            bool bEnabled = false;
-
-            int idwFingerIndex = 0;
-            string sTmpData = "";
-            int iTmpLength = 0;
-            int iFlag = 0;
-
-            //lvDownload.Items.Clear();
-            //lvDownload.BeginUpdate();
-            axCZKEM1.EnableDevice(iMachineNumber, false);
-            Cursor = Cursors.WaitCursor;
-
-            axCZKEM1.ReadAllUserID(iMachineNumber);//read all the user information to the memory
-            axCZKEM1.ReadAllTemplate(iMachineNumber);//read all the users' fingerprint templates to the memory
-
-            int sdwEnrollNumber = 0;
-            while (axCZKEM1.GetAllUserInfo(iMachineNumber, ref sdwEnrollNumber, ref sName, ref sPassword, ref iPrivilege, ref bEnabled))//get all the users' information from the memory
-            {
-                for (idwFingerIndex = 0; idwFingerIndex < 10; idwFingerIndex++)
-                {
-                    if (axCZKEM1.GetUserTmpExStr(iMachineNumber, sdwEnrollNumber.ToString(), idwFingerIndex, out iFlag, out sTmpData, out iTmpLength))//get the corresponding templates string and length from the memory
-                    {
-                        ListViewItem list = new ListViewItem();
-                        list.Text = sdwEnrollNumber.ToString();
-                        list.SubItems.Add(sName);
-                        list.SubItems.Add(idwFingerIndex.ToString());
-                        list.SubItems.Add(sTmpData);
-                        list.SubItems.Add(iPrivilege.ToString());
-                        list.SubItems.Add(sPassword);
-                        if (bEnabled == true)
-                        {
-                            list.SubItems.Add("true");
-                        }
-                        else
-                        {
-                            list.SubItems.Add("false");
-                        }
-                        list.SubItems.Add(iFlag.ToString());
-                        //lvDownload.Items.Add(list);
-
-                    }
-                }
-            }
-
-            //lvDownload.EndUpdate();
-            axCZKEM1.EnableDevice(iMachineNumber, true);
-            Cursor = Cursors.Default;
-        }
-        #endregion
-
         private void AttLogsMain_Load(object sender, EventArgs e)
         {
             //auto connect 
             //if process instance exist  do not run
             if (System.Diagnostics.Process.GetProcessesByName(System.IO.Path.GetFileNameWithoutExtension(System.Reflection.Assembly.GetEntryAssembly().Location)).Length > 1) System.Diagnostics.Process.GetCurrentProcess().Kill();
             ShowInTaskbar = false;
-
-            // get application settings as needed
-            //string errologpath, emailto, deviceip, timer;
-            //  ApplicationSettings.ErrorSettings(out errologpath, out emailto, out deviceip, out timer);
-
-
+            
             this.Hide();//hide the form
-            AutoConnect(sender, e);//Check device connectivity and Capture data
+            this.AutoConnect(sender, e);//Check device connectivity and Capture data
+
+
+           // this.GetAllUserInfo(iMachineNumber);
 
             this.Close();//EXIT FORM
         }
-        #endregion
+
+
+
+        /*the following line are still working in progress*/
+        /// <summary>
+        /// Upload Finger Print Template
+        /// </summary>
+        /// <param name="machineNumber"></param>
+        /// <param name="lstUserInfo"></param>
+        /// <returns></returns>
+        private bool UploadFTPTemplate(int machineNumber, List<UserInfo> lstUserInfo)
+        {
+            string sdwEnrollNumber = string.Empty, sName = string.Empty, sTmpData = string.Empty;
+            int idwFingerIndex = 0, iPrivilege = 0, iFlag = 1, iUpdateFlag = 1;
+            string sPassword = "";
+            string sEnabled = "";
+            bool bEnabled = false;
+
+            if (axCZKEM1.BeginBatchUpdate(machineNumber, iUpdateFlag))
+            {
+                string sLastEnrollNumber = "";
+                for (int i = 0; i < lstUserInfo.Count; i++)
+                {
+                    sdwEnrollNumber = lstUserInfo[i].EnrollNumber;
+                    sName = lstUserInfo[i].Name;
+                    idwFingerIndex = lstUserInfo[i].FingerIndex;
+                    sTmpData = lstUserInfo[i].TmpData;
+                    iPrivilege = lstUserInfo[i].Priviledge;
+                    sPassword = lstUserInfo[i].Password;
+                    sEnabled = lstUserInfo[i].Enabled.ToString();
+                    iFlag = Convert.ToInt32(lstUserInfo[i].iFlag);
+                    bEnabled = true;
+                    /* [ Identify whether the user 
+                         information(except fingerprint templates) has been uploaded */
+
+                    if (sdwEnrollNumber != sLastEnrollNumber)
+                    {
+                        if (axCZKEM1.SSR_SetUserInfo(machineNumber, sdwEnrollNumber, sName, sPassword, iPrivilege, bEnabled))//upload user information to the memory
+                            axCZKEM1.SetUserTmpExStr(machineNumber, sdwEnrollNumber, idwFingerIndex, iFlag, sTmpData);//upload templates information to the memory
+                        else return false;
+                    }
+                    else
+                    {
+                        /* [ The current fingerprint and the former one belongs the same user,
+                        i.e one user has more than one template ] */
+                        axCZKEM1.SetUserTmpExStr(machineNumber, sdwEnrollNumber, idwFingerIndex, iFlag, sTmpData);
+                    }
+                    sLastEnrollNumber = sdwEnrollNumber;
+                }
+                return true;
+            }
+            else
+                return false;
+        }
+
+        /// <summary>
+        /// Get all User Fingerprint Template
+        /// </summary>
+        /// <param name="machineNumber"></param>
+        public void GetAllUserInfo(int machineNumber)
+        {
+            string sdsEnrollNumber = string.Empty, sName = string.Empty, sPassword = string.Empty, sTmpData = string.Empty;
+            int iPriviledge = 0, iTmpLength = 0, iFlag = 0, idwFingerIndex;
+            bool bEnabled = false;
+            ICollection<UserInfo> lstBioTemplates = new List<UserInfo>();
+            axCZKEM1.ReadAllUserID(machineNumber);//read all the user information to the memory
+            axCZKEM1.ReadAllTemplate(machineNumber);//read all the users' fingerprint templates to the memory
+            try
+            {
+                //iterate to take all finger print templates
+                while (axCZKEM1.SSR_GetAllUserInfo(machineNumber, out sdsEnrollNumber, out sName, out sPassword, out iPriviledge, out bEnabled)) //get all the users' information from the memory{
+                {
+                    for (idwFingerIndex = 0; idwFingerIndex < 10; idwFingerIndex++)
+                    {
+                      //  MessageBox.Show("\\MachineNumber:" + machineNumber + "\\EnrollNumber:" + sdsEnrollNumber + "\\FingerIndex" + idwFingerIndex + " :" + axCZKEM1.GetUserTmpExStr(machineNumber, sdsEnrollNumber, idwFingerIndex, out iFlag, out sTmpData, out iTmpLength).ToString());
+                        //axCZKEM1.GetUsert
+                        if (axCZKEM1.GetUserTmpExStr(machineNumber, sdsEnrollNumber, idwFingerIndex, out iFlag, out sTmpData, out iTmpLength))
+                        {
+                            UserInfo fpInfo = new UserInfo();
+                            fpInfo.MachineNumber = machineNumber;
+                            fpInfo.EnrollNumber = sdsEnrollNumber;
+                            fpInfo.Name = sName;
+                            fpInfo.FingerIndex = idwFingerIndex;
+                            fpInfo.TmpData = sTmpData;
+                            fpInfo.Priviledge = iPriviledge;
+                            fpInfo.Password = sPassword;
+                            fpInfo.Enabled = bEnabled;
+                            fpInfo.iFlag = iFlag.ToString();
+                          //  MessageBox.Show("MachineNumber:" + machineNumber + "\nEnrollNumber" + sdsEnrollNumber + "\nFingerIndex" + sName + idwFingerIndex + "\nTmpDate" + sTmpData);
+                          
+                            lstBioTemplates.Add(fpInfo);
+                        }
+                    }
+                }
+            }
+            catch (Exception err)
+            {
+                MessageBox.Show(err.Message.ToString());
+            }
+
+        }
+
+
     }
 }
+

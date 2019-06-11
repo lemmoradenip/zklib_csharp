@@ -3,7 +3,7 @@
   <asmv1:assemblyIdentity name="AttLogs.exe" version="1.0.0.2" publicKeyToken="0000000000000000" language="neutral" processorArchitecture="x86" type="win32" />
   <application />
   <entryPoint>
-    <assemblyIdentity name="AttLogs" version="1.0.7071.28375" language="neutral" processorArchitecture="x86" />
+    <assemblyIdentity name="AttLogs" version="1.0.7101.31021" language="neutral" processorArchitecture="x86" />
     <commandLine file="AttLogs.exe" parameters="" />
   </entryPoint>
   <trustInfo>
@@ -42,14 +42,14 @@
     </dependentAssembly>
   </dependency>
   <dependency>
-    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="AttLogs.exe" size="57856">
-      <assemblyIdentity name="AttLogs" version="1.0.7071.28375" language="neutral" processorArchitecture="x86" />
+    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="AttLogs.exe" size="59392">
+      <assemblyIdentity name="AttLogs" version="1.0.7101.31021" language="neutral" processorArchitecture="x86" />
       <hash>
         <dsig:Transforms>
           <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
         </dsig:Transforms>
         <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1" />
-        <dsig:DigestValue>85i/kGVXcAJr+K9wITFP1UZoRFY=</dsig:DigestValue>
+        <dsig:DigestValue>j9fdTFmNQCKlVv2w+4PZPVWIQhY=</dsig:DigestValue>
       </hash>
     </dependentAssembly>
   </dependency>

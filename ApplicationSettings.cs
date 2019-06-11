@@ -5,14 +5,12 @@ using System.Data.OleDb;
 using System.Configuration;
 using System.Data;
 using System.ComponentModel;
-using System.Data;
 using System.Drawing;
 using System.Windows.Forms;
 using System.Runtime.InteropServices;
 using System.IO;
 using System.Net.Mail;
 using System.Diagnostics;
-using System.IO;
 namespace AttLogs
 {
     class ApplicationSettings
