@@ -1,0 +1,2 @@
+# Ignore db connection
+app.config
